@@ -328,7 +328,7 @@ function renderSessions() {
         <div class="item-money">${formatMoney(session.hours * session.hourlyRate)}</div>
       </div>
       <div class="item-actions">
-        <button class="small-button" type="button" data-action="toggle-session-paid" data-id="${session.id}">${isPaid ? "轉未收" : "轉已收"}</button>
+        <button class="small-button" type="button" data-action="toggle-session-paid" data-id="${session.id}">${isPaid ? "轉成未收" : "轉成已收"}</button>
         <button class="danger-button" type="button" data-action="delete-session" data-id="${session.id}">刪除</button>
       </div>
     `;
