@@ -232,7 +232,7 @@ function exportBackup() {
     `tutoring-hours-backup-${todayKey()}.json`,
     "application/json"
   );
-  setBackupStatus("已匯出備份。");
+  setBackupStatus("已保存備份，請把檔案放在安全的位置。");
 }
 
 async function importBackup() {
@@ -242,9 +242,9 @@ async function importBackup() {
   try {
     const backup = JSON.parse(await file.text());
     const nextState = normalizeBackup(backup);
-    const confirmed = window.confirm("匯入備份會覆蓋目前手機內的資料，確定繼續？");
+    const confirmed = window.confirm("用備份還原會取代目前這部手機內的資料，確定繼續？");
     if (!confirmed) {
-      setBackupStatus("已取消匯入。");
+      setBackupStatus("已取消還原，現有資料沒有改變。");
       return;
     }
 
@@ -255,9 +255,9 @@ async function importBackup() {
     els.statsMonth.value = state.statsMonth;
     persist();
     render();
-    setBackupStatus("已匯入備份並更新畫面。");
+    setBackupStatus("已用備份還原資料。");
   } catch {
-    setBackupStatus("備份檔格式不正確，未覆蓋現有資料。");
+    setBackupStatus("這個備份檔不能使用，現有資料沒有改變。");
   } finally {
     els.importBackupInput.value = "";
   }
@@ -287,7 +287,11 @@ function exportMonthlyCsv() {
 
   const csv = `\ufeff${rows.map((row) => row.map(csvCell).join(",")).join("\n")}`;
   downloadTextFile(csv, `tutoring-hours-${month}.csv`, "text/csv;charset=utf-8");
-  setBackupStatus(sessions.length > 0 ? `已匯出 ${formatMonth(month)} CSV。` : "已匯出空白月份 CSV。");
+  setBackupStatus(
+    sessions.length > 0
+      ? `已下載 ${formatMonth(month)} 的補習表格。`
+      : "這個月份沒有記錄，已下載空白表格。"
+  );
 }
 
 function resetStudentForm() {
@@ -650,7 +654,7 @@ function registerServiceWorker() {
 
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./service-worker.js").catch(() => {
-      setBackupStatus("離線快取暫時未能啟用，其他功能仍可使用。");
+      setBackupStatus("暫時未能準備離線使用，其他功能仍可正常使用。");
     });
   });
 }
