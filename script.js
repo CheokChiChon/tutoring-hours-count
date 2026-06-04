@@ -1,4 +1,5 @@
 const STORAGE_KEY = "tutoringHours.v1";
+const DATA_VERSION = 1;
 
 const state = {
   students: [],
@@ -40,6 +41,10 @@ const els = {
   statsStudentCount: document.querySelector("#statsStudentCount"),
   selectedStudentsPay: document.querySelector("#selectedStudentsPay"),
   clearSelectionButton: document.querySelector("#clearSelectionButton"),
+  exportBackupButton: document.querySelector("#exportBackupButton"),
+  exportCsvButton: document.querySelector("#exportCsvButton"),
+  importBackupInput: document.querySelector("#importBackupInput"),
+  backupStatus: document.querySelector("#backupStatus"),
 };
 
 init();
@@ -50,6 +55,7 @@ function init() {
   els.statsMonth.value = state.statsMonth;
   bindEvents();
   render();
+  registerServiceWorker();
 }
 
 function bindEvents() {
@@ -86,6 +92,10 @@ function bindEvents() {
     state.selectedStudentKeys = [];
     renderStats();
   });
+
+  els.exportBackupButton.addEventListener("click", exportBackup);
+  els.exportCsvButton.addEventListener("click", exportMonthlyCsv);
+  els.importBackupInput.addEventListener("change", importBackup);
 }
 
 function saveStudent() {
@@ -205,6 +215,79 @@ function markStudentMonthPaid(studentKey) {
 
   persist();
   render();
+}
+
+function exportBackup() {
+  const backup = {
+    app: "tutoring-hours-count",
+    version: DATA_VERSION,
+    exportedAt: new Date().toISOString(),
+    statsMonth: state.statsMonth,
+    students: state.students,
+    sessions: state.sessions,
+  };
+
+  downloadTextFile(
+    JSON.stringify(backup, null, 2),
+    `tutoring-hours-backup-${todayKey()}.json`,
+    "application/json"
+  );
+  setBackupStatus("已匯出備份。");
+}
+
+async function importBackup() {
+  const file = els.importBackupInput.files && els.importBackupInput.files[0];
+  if (!file) return;
+
+  try {
+    const backup = JSON.parse(await file.text());
+    const nextState = normalizeBackup(backup);
+    const confirmed = window.confirm("匯入備份會覆蓋目前手機內的資料，確定繼續？");
+    if (!confirmed) {
+      setBackupStatus("已取消匯入。");
+      return;
+    }
+
+    state.students = nextState.students;
+    state.sessions = nextState.sessions;
+    state.statsMonth = nextState.statsMonth;
+    state.selectedStudentKeys = [];
+    els.statsMonth.value = state.statsMonth;
+    persist();
+    render();
+    setBackupStatus("已匯入備份並更新畫面。");
+  } catch {
+    setBackupStatus("備份檔格式不正確，未覆蓋現有資料。");
+  } finally {
+    els.importBackupInput.value = "";
+  }
+}
+
+function exportMonthlyCsv() {
+  const month = state.statsMonth || monthKey(new Date());
+  const sessions = state.sessions
+    .filter((session) => session.date.startsWith(month))
+    .slice()
+    .sort((a, b) => {
+      if (a.date === b.date) return a.studentName.localeCompare(b.studentName, "zh-Hant");
+      return a.date.localeCompare(b.date);
+    });
+
+  const rows = [
+    ["日期", "學生", "時數", "時薪", "薪金", "收款狀態"],
+    ...sessions.map((session) => [
+      session.date,
+      session.studentName,
+      formatCsvNumber(session.hours),
+      formatCsvNumber(session.hourlyRate),
+      formatCsvNumber(session.hours * session.hourlyRate),
+      Boolean(session.paid) ? "已收款" : "未收款",
+    ]),
+  ];
+
+  const csv = `\ufeff${rows.map((row) => row.map(csvCell).join(",")).join("\n")}`;
+  downloadTextFile(csv, `tutoring-hours-${month}.csv`, "text/csv;charset=utf-8");
+  setBackupStatus(sessions.length > 0 ? `已匯出 ${formatMonth(month)} CSV。` : "已匯出空白月份 CSV。");
 }
 
 function resetStudentForm() {
@@ -491,6 +574,87 @@ function persist() {
   );
 }
 
+function normalizeBackup(backup) {
+  if (!backup || !Array.isArray(backup.students) || !Array.isArray(backup.sessions)) {
+    throw new Error("Invalid backup");
+  }
+
+  const students = backup.students.map((student) => {
+    const name = String(student.name || "").trim();
+    const hourlyRate = roundMoney(student.hourlyRate);
+    if (!student.id || !name || hourlyRate <= 0) {
+      throw new Error("Invalid student");
+    }
+    return {
+      id: String(student.id),
+      name,
+      hourlyRate,
+      createdAt: String(student.createdAt || new Date().toISOString()),
+    };
+  });
+
+  const sessions = backup.sessions.map((session) => {
+    const date = String(session.date || "");
+    const studentName = String(session.studentName || "").trim();
+    const hours = roundHours(session.hours);
+    const hourlyRate = roundMoney(session.hourlyRate);
+    if (!session.id || !isDateKey(date) || !studentName || hours <= 0 || hourlyRate <= 0) {
+      throw new Error("Invalid session");
+    }
+    return {
+      id: String(session.id),
+      date,
+      studentId: session.studentId ? String(session.studentId) : "",
+      studentName,
+      hourlyRate,
+      hours,
+      paid: Boolean(session.paid),
+      createdAt: String(session.createdAt || new Date().toISOString()),
+    };
+  });
+
+  return {
+    students,
+    sessions,
+    statsMonth: isMonthKey(backup.statsMonth) ? backup.statsMonth : monthKey(new Date()),
+  };
+}
+
+function downloadTextFile(content, filename, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function csvCell(value) {
+  const text = String(value ?? "");
+  return `"${text.replaceAll('"', '""')}"`;
+}
+
+function formatCsvNumber(value) {
+  return String(roundMoney(value));
+}
+
+function setBackupStatus(message) {
+  els.backupStatus.textContent = message;
+}
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(() => {
+      setBackupStatus("離線快取暫時未能啟用，其他功能仍可使用。");
+    });
+  });
+}
+
 function sessionKey(session) {
   return session.studentId || `name:${session.studentName}`;
 }
@@ -515,6 +679,14 @@ function todayKey() {
 function monthKey(date) {
   const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return offsetDate.toISOString().slice(0, 7);
+}
+
+function isDateKey(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(value));
+}
+
+function isMonthKey(value) {
+  return /^\d{4}-\d{2}$/.test(String(value));
 }
 
 function formatDate(value) {
