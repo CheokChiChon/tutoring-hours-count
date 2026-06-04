@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="補習時數">
+  <rect width="512" height="512" rx="96" fill="#146c5c"/>
+  <circle cx="154" cy="160" r="52" fill="#fffdf7"/>
+  <circle cx="334" cy="160" r="52" fill="#f3c34f"/>
+  <path fill="#fffdf7" d="M94 286c0-32 26-58 58-58h16c32 0 58 26 58 58v92H94v-92Z"/>
+  <path fill="#f3c34f" d="M274 286c0-32 26-58 58-58h16c32 0 58 26 58 58v92H274v-92Z"/>
+  <path fill="#c44938" d="M126 405h260c20 0 36 16 36 36v10H90v-10c0-20 16-36 36-36Z"/>
+  <path fill="#ffffff" d="M250 88h32v96h-32z"/>
+  <path fill="#ffffff" d="M218 120h96v32h-96z"/>
+</svg>

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#146c5c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="補習時數">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>補習時數</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">MOP 補習薪金</p>
+          <h1>補習時數</h1>
+        </div>
+        <div class="month-chip" id="currentMonthLabel">本月</div>
+      </header>
+
+      <main>
+        <section class="summary-band" aria-label="本月總覽">
+          <div>
+            <span>本月總時數</span>
+            <strong id="monthlyHours">0 小時</strong>
+          </div>
+          <div>
+            <span>本月薪金</span>
+            <strong id="monthlyPay">MOP 0.00</strong>
+          </div>
+          <div>
+            <span>未收款</span>
+            <strong id="monthlyUnpaid">MOP 0.00</strong>
+          </div>
+        </section>
+
+        <nav class="tab-bar" aria-label="主要分頁">
+          <button class="tab-button active" type="button" data-tab="record" aria-controls="recordPanel">記錄</button>
+          <button class="tab-button" type="button" data-tab="students" aria-controls="studentsPanel">學生</button>
+          <button class="tab-button" type="button" data-tab="stats" aria-controls="statsPanel">統計</button>
+        </nav>
+
+        <section class="panel active" id="recordPanel" data-panel="record">
+          <form class="form-panel" id="sessionForm">
+            <div class="form-header">
+              <h2>新增補習記錄</h2>
+              <p id="sessionHint">先建立學生，之後就可以直接選擇。</p>
+            </div>
+
+            <label>
+              日期
+              <input id="sessionDate" name="sessionDate" type="date" required>
+            </label>
+
+            <label>
+              學生
+              <select id="sessionStudent" name="sessionStudent" required>
+                <option value="">請先新增學生</option>
+              </select>
+            </label>
+
+            <label>
+              補習時數
+              <input id="sessionHours" name="sessionHours" type="number" min="0.25" step="0.25" inputmode="decimal" placeholder="例如 1.5" required>
+            </label>
+
+            <div class="preview-box" aria-live="polite">
+              <span>這筆薪金</span>
+              <strong id="sessionPreview">MOP 0.00</strong>
+            </div>
+
+            <button class="primary-button" type="submit">加入記錄</button>
+          </form>
+
+          <div class="list-section">
+            <div class="section-title">
+              <h2>最近記錄</h2>
+              <span id="sessionCount">0 筆</span>
+            </div>
+            <div class="empty-state" id="sessionEmpty">還未有補習記錄。</div>
+            <ul class="item-list" id="sessionList"></ul>
+          </div>
+        </section>
+
+        <section class="panel" id="studentsPanel" data-panel="students">
+          <form class="form-panel" id="studentForm">
+            <div class="form-header">
+              <h2 id="studentFormTitle">新增學生</h2>
+              <p>學生時薪會用於之後新增的補習記錄。</p>
+            </div>
+
+            <input id="editingStudentId" type="hidden">
+
+            <label>
+              學生姓名
+              <input id="studentName" name="studentName" type="text" autocomplete="off" placeholder="例如 陳同學" required>
+            </label>
+
+            <label>
+              時薪
+              <input id="studentRate" name="studentRate" type="number" min="1" step="0.01" inputmode="decimal" placeholder="例如 180" required>
+            </label>
+
+            <div class="form-actions">
+              <button class="primary-button" type="submit" id="studentSubmitButton">新增學生</button>
+              <button class="ghost-button hidden" type="button" id="cancelEditButton">取消</button>
+            </div>
+          </form>
+
+          <div class="list-section">
+            <div class="section-title">
+              <h2>學生清單</h2>
+              <span id="studentCount">0 位</span>
+            </div>
+            <div class="empty-state" id="studentEmpty">先新增第一位學生。</div>
+            <ul class="item-list" id="studentList"></ul>
+          </div>
+        </section>
+
+        <section class="panel" id="statsPanel" data-panel="stats">
+          <div class="form-panel">
+            <div class="form-header">
+              <h2>每月統計</h2>
+              <p>只計算所選月份內的補習記錄。</p>
+            </div>
+
+            <label>
+              統計月份
+              <input id="statsMonth" name="statsMonth" type="month">
+            </label>
+          </div>
+
+          <div class="list-section">
+            <div class="section-title">
+              <h2>學生收入</h2>
+              <span id="statsStudentCount">0 位</span>
+            </div>
+            <div class="selected-total">
+              <div>
+                <span>已選學生總薪金</span>
+                <strong id="selectedStudentsPay">MOP 0.00</strong>
+              </div>
+              <button class="ghost-button" type="button" id="clearSelectionButton">清除</button>
+            </div>
+            <div class="empty-state" id="statsEmpty">這個月份還未有記錄。</div>
+            <ul class="item-list" id="statsList"></ul>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
